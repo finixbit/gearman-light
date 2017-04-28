@@ -1,2 +1,5 @@
 # gearman_cxx
-Simple light weight gearman client for  libgearman c library
+Simple Easy light weight C++ Gearman API
+
+# Install required libraries
+$ apt-get install libgearman-dev gearman-job-server

@@ -27,3 +27,7 @@
 *.exe
 *.out
 *.app
+
+# example binaries
+example/worker
+example/client
