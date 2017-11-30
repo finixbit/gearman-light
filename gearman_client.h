@@ -33,7 +33,7 @@
 #include <string>
 #include <libgearman/gearman.h>
 
-#define DEGUG_GEARMAN_CXX 1
+#define DEGUG_GEARMAN_CXX true
 
 
 class GearmanCxxClient {

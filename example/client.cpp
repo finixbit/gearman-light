@@ -29,10 +29,11 @@
 #include <iostream>
 #include "../gearman_client.h"
 
+
 int main(int argc, char* argv[]) {
 
   std::string gearmanHost("120.0.0.1");
-  int gearmanPort = 433;
+  int gearmanPort = 4730;
 
   GearmanCxxClient gmClient(gearmanHost, gearmanPort);
 
@@ -41,11 +42,12 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  // std:string gearmanTaskName("reverse_str");
-  // std::string data("Hello world");
-  // std::string result = gmClient.gearmanSendJob(gearmanTaskName, data);
+  std::string gearmanTaskName("reverse_str");
+  std::string data("Hello world");
+  bool waitTillComplete = true;
+  std::string result = gmClient.gearmanSendJob(gearmanTaskName, data, waitTillComplete);
 
-  // std::cout << result << endl;
+  std::cout << result << std::endl;
 
   return 0;
 }
