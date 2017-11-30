@@ -135,8 +135,7 @@ bool GearmanCxxClient::gearmanSendJobBackground(
   return true;
 }
 
-std::string GearmanCxxClient::gearmanSendJob(
-  std::string &task, std::string &data, bool waitTillComplete) {
+std::string GearmanCxxClient::gearmanSendJob(std::string &task, std::string &data) {
   gmResult = (char *)gearman_client_do(&gmClient_,
                                        task.c_str(),
                                        NULL,

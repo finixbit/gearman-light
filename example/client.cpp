@@ -45,9 +45,15 @@ int main(int argc, char* argv[]) {
   std::string gearmanTaskName("reverse_str");
   std::string data("Hello world");
   bool waitTillComplete = true;
-  std::string result = gmClient.gearmanSendJob(gearmanTaskName, data, waitTillComplete);
 
+  // send normal job
+  std::string result = gmClient.gearmanSendJob(gearmanTaskName, data);
   std::cout << result << std::endl;
+
+  // send background job
+  bool response = gmClient.gearmanSendJobBackground(gearmanTaskName, data);
+  if(response)
+    std::cout << "background job successfull ..." << std::endl;
 
   return 0;
 }
