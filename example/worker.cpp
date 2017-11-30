@@ -27,12 +27,34 @@
 */
 
 #include <iostream>
-#include "../gearman_client.h"
-using namespace GearmanCxx;
+#include "../gearman_worker.h"
+
+
+std::string reverseJob(bool &jobStatus, std::string &data);
 
 int main(int argc, char* argv[]) {
 
-  GearmanCxx::GearmanCxxClient gmClient
+  std::string gearmanHost("120.0.0.1");
+  int gearmanPort = 4730;
 
+  GearmanCxxWorker gmWorker(gearmanHost, gearmanPort);
+
+  if(gmWorker.gearmanConnIsInvalid()) {
+    std::cout << "Connection Failed ..." << std::endl;
+    return 1;
+  }
+
+  // register task
+  std::string gearmanTaskName("reverse_str");
+  bool response = gmWorker.registerTask(gearmanTaskName, reverseJob);
+  if(response)
+    std::cout << "job registered successfully ..." << std::endl;
+
+  gmWorker.startWorker();
   return 0;
+}
+
+std::string reverseJob(bool &jobStatus, std::string &data) {
+  jobStatus = true;
+  return std::string("helloworld");
 }

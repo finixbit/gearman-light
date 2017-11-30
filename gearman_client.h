@@ -26,8 +26,8 @@
 *
 */
 
-#ifndef API_GEARMAN_CXX
-#define API_GEARMAN_CXX
+#ifndef API_GEARMAN_CLIENT_CXX
+#define API_GEARMAN_CLIENT_CXX
 
 #include <cstdint> /* uint32_t */
 #include <string>
@@ -57,8 +57,7 @@ public:
   bool gearmanConnIsInvalid();
   bool connectToGearmanServer();
   bool gearmanSendJobBackground(std::string &task, std::string &data);
-  std::string gearmanSendJob(
-    std::string &task, std::string &data, bool waitTillComplete);
+  std::string gearmanSendJob(std::string &task, std::string &data);
 };
 
 GearmanCxxClient::GearmanCxxClient() {}
@@ -152,7 +151,7 @@ std::string GearmanCxxClient::gearmanSendJob(std::string &task, std::string &dat
       #ifdef DEGUG_GEARMAN_CXX
         std::cout << std::string(gearman_client_error(&gmClient_)) << std::endl;
       #endif
-      return std::string("CACHE_INVALID_PARAM");
+      return std::string("null");
     }
   }
 

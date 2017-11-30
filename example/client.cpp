@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
   // send background job
   bool response = gmClient.gearmanSendJobBackground(gearmanTaskName, data);
   if(response)
-    std::cout << "background job successfull ..." << std::endl;
+    std::cout << "background job successful ..." << std::endl;
 
   return 0;
 }
