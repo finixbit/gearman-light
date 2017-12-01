@@ -139,12 +139,12 @@ std::string GearmanCxxClient::gearmanSendJob(std::string &task, std::string &dat
                                        task.c_str(),
                                        NULL,
                                        (void *)data.c_str(),
-                                       (size_t)data.length(),
+                                       (size_t)data.size(),
                                        &gmResultSize,
                                        &gmReturn);
 
   while (1) {
-    if (gmReturn == GEARMAN_SUCCESS)
+    if (gmReturn == GEARMAN_SUCCESS) // gearman_success(gmReturn)
       break;
 
     if (gmReturn == GEARMAN_WORK_FAIL) {

@@ -32,7 +32,7 @@
 
 int main(int argc, char* argv[]) {
 
-  std::string gearmanHost("120.0.0.1");
+  std::string gearmanHost("127.0.0.1");
   int gearmanPort = 4730;
 
   GearmanCxxClient gmClient(gearmanHost, gearmanPort);
@@ -48,12 +48,13 @@ int main(int argc, char* argv[]) {
 
   // send normal job
   std::string result = gmClient.gearmanSendJob(gearmanTaskName, data);
-  std::cout << result << std::endl;
+  std::cout << "result from worker: " << result << std::endl;
 
   // send background job
+  printf("sending background job ...\n");
   bool response = gmClient.gearmanSendJobBackground(gearmanTaskName, data);
   if(response)
-    std::cout << "background job successful ..." << std::endl;
+   std::cout << "background job successful ..." << std::endl;
 
   return 0;
 }

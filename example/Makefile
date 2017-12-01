@@ -10,4 +10,4 @@ worker: worker.cpp
 	g++ -o worker worker.cpp -std=gnu++11 -lgearman 
 
 clean:
-	rm -f worker client 
+	rm -f worker client

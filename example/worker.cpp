@@ -31,10 +31,11 @@
 
 
 std::string reverseJob(bool &jobStatus, std::string &data);
+std::string otherJob(bool &jobStatus, std::string &data);
 
 int main(int argc, char* argv[]) {
 
-  std::string gearmanHost("120.0.0.1");
+  std::string gearmanHost("127.0.0.1");
   int gearmanPort = 4730;
 
   GearmanCxxWorker gmWorker(gearmanHost, gearmanPort);
@@ -46,7 +47,13 @@ int main(int argc, char* argv[]) {
 
   // register task
   std::string gearmanTaskName("reverse_str");
-  bool response = gmWorker.registerTask(gearmanTaskName, reverseJob);
+  bool response = gmWorker.registerTask(gearmanTaskName, &reverseJob);
+  if(response)
+    std::cout << "job registered successfully ..." << std::endl;
+
+  // register task
+  gearmanTaskName = "other_str";
+  response = gmWorker.registerTask(gearmanTaskName, &otherJob);
   if(response)
     std::cout << "job registered successfully ..." << std::endl;
 
@@ -56,5 +63,10 @@ int main(int argc, char* argv[]) {
 
 std::string reverseJob(bool &jobStatus, std::string &data) {
   jobStatus = true;
-  return std::string("helloworld");
+  return std::string("reverseJob");
+}
+
+std::string otherJob(bool &jobStatus, std::string &data) {
+  jobStatus = true;
+  return std::string("otherJob");
 }

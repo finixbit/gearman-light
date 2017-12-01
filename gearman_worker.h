@@ -31,24 +31,33 @@
 #define API_GEARMAN_WORKER_CXX
 
 #include <cstdint> /* uint32_t */
+#include <cstring> /* strncpy */
 #include <string>
+#include <unordered_map>
 #include <libgearman/gearman.h>
 
 #define DEGUG_GEARMAN_CXX true
-typedef std::string (GearmanCxxTask_t)   (bool &jobStatus, std::string &data);
-typedef void* (*GearmanWorkerFunction_t) (gearman_job_st *job, void *context, 
+typedef std::string (GearmanCxxTask_t)  (bool &jobStatus, std::string &data);
+typedef void* (GearmanWorkerFunction_t) (gearman_job_st *job, void *context, 
                                           size_t *result_size, gearman_return_t *ret_ptr);
 
 class GearmanCxxWorker {
 private:
-  GearmanWorkerFunction_t newGmFunction(GearmanCxxTask_t &task);
+  gearman_worker_st m_gmWorker_;
+  gearman_return_t  m_gmReturn;
 
-  gearman_worker_st gmWorker_;
-  gearman_return_t  gmReturn;
+  std::string m_gmHost = "127.0.0.1";
+  in_port_t m_gmPort = 4730;
+  bool m_gmConnectionStatus;
 
-  std::string gmHost = "127.0.0.1";
-  in_port_t gmPort = 4730;
-  bool gmConnectionStatus;
+  static std::unordered_map<std::string, GearmanCxxTask_t*> m_registeredTasks;
+  
+  typedef void* (GearmanCxxWorker::*executeTaskPtr_t) (
+    gearman_job_st *job, void *context, size_t *result_size, gearman_return_t *ret_ptr);
+
+  executeTaskPtr_t executeTaskPtr;
+  //GearmanWorkerFunction_t executeTaskPtr;
+  
 
 public:
   GearmanCxxWorker();
@@ -58,61 +67,69 @@ public:
   void init(std::string &host, int &port);
   bool gearmanConnIsInvalid();
   bool connectToGearmanServer();
-  bool registerTask(std::string &taskname, GearmanCxxTask_t &task);
+  bool registerTask(std::string &taskname, GearmanCxxTask_t *task);
   void startWorker();
+
+  static void *executeTask(
+    gearman_job_st *job, void *context, size_t *result_size, gearman_return_t *ret_ptr);
 };
+
+
+std::unordered_map<std::string, GearmanCxxTask_t*> GearmanCxxWorker::m_registeredTasks;
 
 GearmanCxxWorker::GearmanCxxWorker() {}
 
-GearmanCxxWorker::GearmanCxxWorker(std::string &host): gmHost(host) {
+GearmanCxxWorker::GearmanCxxWorker(std::string &host): m_gmHost(host) {
   if (connectToGearmanServer())
-    gmConnectionStatus = true;
+    m_gmConnectionStatus = true;
   else
-    gmConnectionStatus = false;
+    m_gmConnectionStatus = false;
 }
 
 GearmanCxxWorker::GearmanCxxWorker(std::string &host, int &port):
-  gmHost(host),
-  gmPort((in_port_t)port) {
+  m_gmHost(host),
+  m_gmPort((in_port_t)port) {
   if (connectToGearmanServer())
-    gmConnectionStatus = true;
+    m_gmConnectionStatus = true;
   else
-    gmConnectionStatus = false;
+    m_gmConnectionStatus = false;
 }
 
 GearmanCxxWorker::~GearmanCxxWorker(void) {
-  gearman_worker_free(&gmWorker_);
+  gearman_worker_free(&m_gmWorker_);
 }
 
 void GearmanCxxWorker::init(std::string &host, int &port) {
-  gmHost = host;
-  gmPort = (in_port_t)port;
+  m_gmHost = host;
+  m_gmPort = (in_port_t)port;
 
   if (connectToGearmanServer())
-    gmConnectionStatus = true;
+    m_gmConnectionStatus = true;
   else
-    gmConnectionStatus = false;
+    m_gmConnectionStatus = false;
 }
 
 bool GearmanCxxWorker::gearmanConnIsInvalid() {
-  if (gmConnectionStatus)
+  if (m_gmConnectionStatus)
     return false;
 
   return true;
 }
 
 bool GearmanCxxWorker::connectToGearmanServer() {
-  if (gearman_worker_create(&gmWorker_) == NULL) {
+  if (gearman_worker_create(&m_gmWorker_) == NULL) {
     #ifdef DEGUG_GEARMAN_CXX
       std::cout << "GEARMAN_ERROR: Memory allocation failure" << std::endl;
     #endif
     return false;
   }
 
-  gmReturn = gearman_worker_add_server(&gmWorker_, gmHost.c_str(), gmPort);
-  if (gmReturn != GEARMAN_SUCCESS) {
+
+  printf("%s:%d\n",  m_gmHost.c_str(), m_gmPort);
+  m_gmReturn = gearman_worker_add_server(&m_gmWorker_, m_gmHost.c_str(), m_gmPort);
+  if (m_gmReturn != GEARMAN_SUCCESS) {
     #ifdef DEGUG_GEARMAN_CXX
-      std::cout << std::string(gearman_worker_error(&gmWorker_)) << std::endl;
+      std::cout << std::string(gearman_worker_error(&m_gmWorker_)) << std::endl;
     #endif
     return false;
   }
@@ -121,25 +138,52 @@ bool GearmanCxxWorker::connectToGearmanServer() {
     std::cout << "Gearman Worker Connected" << std::endl;
   #endif
 
+  //executeTaskPtr = &GearmanCxxWorker::executeTask;
   return true;
 }
 
-GearmanWorkerFunction_t GearmanCxxWorker::newGmFunction(GearmanCxxTask_t &task) {
-  GearmanWorkerFunction_t workerFunction = NULL;
-  return workerFunction;
+void *GearmanCxxWorker::executeTask(gearman_job_st *job, 
+  void *context, size_t *result_size, gearman_return_t *ret_ptr) {
+
+  std::string taskname = std::string(gearman_job_function_name(job));
+  std::string data = std::string((char*)gearman_job_workload(job));
+  bool jobStatus;
+  std::string result_str = GearmanCxxWorker::m_registeredTasks[taskname](jobStatus, data);
+
+  if(!jobStatus) {
+    *ret_ptr= GEARMAN_WORK_FAIL;
+    return NULL;
+  }
+
+  uint8_t *result;
+  *result_size= result_str.size();
+
+  result= (uint8_t *)malloc(*result_size);
+  if (result == NULL) {
+    #ifdef DEGUG_GEARMAN_CXX
+      std::cout << "Malloc failed ..." << std::endl;
+    #endif
+    *ret_ptr= GEARMAN_WORK_FAIL;
+    return NULL;
+  }
+
+  *ret_ptr= GEARMAN_SUCCESS;
+  strncpy((char*)result, result_str.c_str(), *result_size);
+  return result;
 }
 
-bool GearmanCxxWorker::registerTask(std::string &taskname, GearmanCxxTask_t &task) {
+bool GearmanCxxWorker::registerTask(std::string &taskname, GearmanCxxTask_t *task) {
   // create gearman function to work with @taskname
-  GearmanWorkerFunction_t workerFunction = newGmFunction(task);
-
-  //register function
-  gmReturn = gearman_worker_add_function(
-    &gmWorker_, taskname.c_str(), 0, workerFunction, NULL);
+  GearmanCxxWorker::m_registeredTasks[taskname] = task;
   
-  if (gmReturn != GEARMAN_SUCCESS) {
+  //register function
+  m_gmReturn = gearman_worker_add_function(
+    &m_gmWorker_, 
+    taskname.c_str(), 0, GearmanCxxWorker::executeTask, NULL);
+  
+  if (m_gmReturn != GEARMAN_SUCCESS) {
     #ifdef DEGUG_GEARMAN_CXX
-      std::cout << std::string(gearman_worker_error(&gmWorker_)) << std::endl;
+      std::cout << std::string(gearman_worker_error(&m_gmWorker_)) << std::endl;
     #endif
     return false;
   }
@@ -147,13 +191,12 @@ bool GearmanCxxWorker::registerTask(std::string &taskname, GearmanCxxTask_t &tas
 }
 
 void GearmanCxxWorker::startWorker() {
+  std::cout << "Worker Started ..." <<std::endl;
   while (1) {
-    std::cout << "Worker Started ..." <<std::endl;
-
-    gmReturn= gearman_worker_work(&gmWorker_);
-    if (gmReturn != GEARMAN_SUCCESS) {
+    m_gmReturn= gearman_worker_work(&m_gmWorker_);
+    if (m_gmReturn != GEARMAN_SUCCESS) {
       #ifdef DEGUG_GEARMAN_CXX
-        std::cout << std::string(gearman_worker_error(&gmWorker_)) << std::endl;
+        std::cout << std::string(gearman_worker_error(&m_gmWorker_)) << std::endl;
       #endif
       break;
     }
