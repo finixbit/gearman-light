@@ -124,8 +124,6 @@ bool GearmanCxxWorker::connectToGearmanServer() {
     return false;
   }
 
-
-  printf("%s:%d\n",  m_gmHost.c_str(), m_gmPort);
   m_gmReturn = gearman_worker_add_server(&m_gmWorker_, m_gmHost.c_str(), m_gmPort);
   if (m_gmReturn != GEARMAN_SUCCESS) {
     #ifdef DEGUG_GEARMAN_CXX
@@ -175,7 +173,7 @@ void *GearmanCxxWorker::executeTask(gearman_job_st *job,
 bool GearmanCxxWorker::registerTask(std::string &taskname, GearmanCxxTask_t *task) {
   // create gearman function to work with @taskname
   GearmanCxxWorker::m_registeredTasks[taskname] = task;
-  
+
   //register function
   m_gmReturn = gearman_worker_add_function(
     &m_gmWorker_, 
