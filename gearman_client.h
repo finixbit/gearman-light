@@ -45,8 +45,8 @@ private:
   char* gmResult;
   size_t gmResultSize;
 
-  std::string gmHost;
-  in_port_t gmPort;
+  std::string gmHost = "127.0.0.1";
+  in_port_t gmPort = 4730;
   bool gmConnectionStatus;
 
 public:
